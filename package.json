@@ -1,0 +1,15 @@
+{
+  "name": "homebridge-yindl",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:0x5e/homebridge-yindl.git",
+  "author": "gaosen <0x5e@sina.cn>",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "engines": {
+    "homebridge": ">=0.4.0"
+  },
+  "dependencies": {}
+}
