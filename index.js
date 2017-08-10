@@ -46,19 +46,29 @@ class YindlPlatform {
 
       var accessory = new Accessory(name, uuid)
       accessory.addService(service, name)
+      accessory.reachable = true
+
       this.accessories.push(accessory)
       this.api.registerPlatformAccessories('homebridge-yindl', 'Yindl', [accessory])
     }
   }
 
   event(knx_telegram) {
+    var index = knx_telegram.charCodeAt(3)
+    var accessory = this.accessories[index]
+    if (accessory == null) {
+      return
+    }
 
+    var service = accessory.getService(Service.Lightbulb)
+    var character = service.getCharacteristic(Characteristic.On)
+    character.updateValue(0)
   }
 
-  setPower(id, value, callback) {
-    this.log.info(id, 'setPower:', value)
+  setPower(devId, value, callback) {
+    this.log.info(devId, 'setPower:', value)
 
-    var buf = new Buffer(this.client.knx_dict[id], 'binary')
+    var buf = new Buffer(this.client.knx_dict[devId], 'binary')
     // buf.writeUInt16BE(value, 7)
 
     var knx_telegram = buf.toString('buf')
@@ -66,10 +76,10 @@ class YindlPlatform {
     callback()
   }
 
-  setBrightness(id, value, callback) {
-    this.log.info(id, 'setBrightness:', value)
+  setBrightness(devId, value, callback) {
+    this.log.info(devId, 'setBrightness:', value)
 
-    var buf = new Buffer(this.client.knx_dict[id], 'binary')
+    var buf = new Buffer(this.client.knx_dict[devId], 'binary')
     // buf.writeUInt16BE(value, 7)
 
     var knx_telegram = buf.toString('buf')
