@@ -32,13 +32,25 @@ class YindlClient {
     if (pkg.type == Datagram.type.Heartbeat_Ack) {
       ;
     } else if (pkg.type == Datagram.type.Login_Ack) {
-      console.log('Login success')
+      console.info('Login success')
     } else if (pkg.type == Datagram.type.Init_KNX_Telegram_Reply) {
       this._knx_update(pkg.data.knx_list)
-      // this._send({'type': Datagram.type.Init_KNX_Telegram_Reply_Ack, 'data': })
+
+      var buf = new Buffer(15)
+      buf.writeUInt32BE(pkg.data.amount, 6)
+      buf.writeUInt32BE(pkg.data.index, 10)
+      buf.writeUInt8(pkg.data.count, 14)
+      this._send({'type': Datagram.type.Init_KNX_Telegram_Reply_Ack, 'data': buf.toString('binary')})
+
+      if (pkg.data.index - 1 + pkg.data.count == pkg.data.amount) {
+        console.info('KNX Telegrams all loaded, count: ', pkg.data.amount)
+      }
     } else if (pkg.type == Datagram.type.KNX_Telegram_Event) {
       this._knx_update(pkg.data.knx_list)
-      // this._send({'type': Datagram.type.KNX_Telegram_Event_Ack, 'data': })
+
+      var buf = new Buffer(8)
+      buf.writeUInt32BE(pkg.data.count)
+      this._send({'type': Datagram.type.KNX_Telegram_Event_Ack, 'data': buf.toString('binary')})
     }
   }
 
@@ -63,7 +75,7 @@ class YindlClient {
     for (var i = 0; i < knx_telegram_list.length; i++) {
       var knx_telegram = knx_telegram_list[i]
       var index = knx_telegram.charCodeAt(3)
-      console.log('KNX  <--- ', new Buffer(knx_telegram, 'binary').toString('hex'))
+      console.info('KNX  <--- ', new Buffer(knx_telegram, 'binary').toString('hex'))
       this.knx_dict[index] = knx_telegram
     }
   }
@@ -71,7 +83,7 @@ class YindlClient {
   _knx_publish(knx_telegram_list) {
     for (var i = 0; i < knx_telegram_list.length; i++) {
       var knx_telegram = knx_telegram_list[i]
-      console.log('KNX  ---> ', new Buffer(knx_telegram, 'binary').toString('hex'))
+      console.info('KNX  ---> ', new Buffer(knx_telegram, 'binary').toString('hex'))
     }
     this._send({'type': Datagram.type.KNX_Telegram_Publish, 'knx_list': knx_telegram_list})
   }
