@@ -44,6 +44,7 @@ class YindlClient {
 
       if (pkg.data.index - 1 + pkg.data.count == pkg.data.amount) {
         console.info('KNX Telegrams all loaded, count: ', pkg.data.amount)
+        this.emit('loaded', this.knx_dict)
       }
     } else if (pkg.type == Datagram.type.KNX_Telegram_Event) {
       this._knx_update(pkg.data.knx_list)
@@ -75,17 +76,18 @@ class YindlClient {
     for (var i = 0; i < knx_telegram_list.length; i++) {
       var knx_telegram = knx_telegram_list[i]
       var index = knx_telegram.charCodeAt(3)
+      this.emit('event', knx_telegram)
       console.info('KNX  <--- ', new Buffer(knx_telegram, 'binary').toString('hex'))
       this.knx_dict[index] = knx_telegram
     }
   }
 
-  _knx_publish(knx_telegram_list) {
+  knx_publish(knx_telegram_list) {
     for (var i = 0; i < knx_telegram_list.length; i++) {
       var knx_telegram = knx_telegram_list[i]
       console.info('KNX  ---> ', new Buffer(knx_telegram, 'binary').toString('hex'))
     }
-    this._send({'type': Datagram.type.KNX_Telegram_Publish, 'knx_list': knx_telegram_list})
+    this._send({'type': Datagram.type.KNX_Telegram_Publish, 'data': {'knx_list': knx_telegram_list}})
   }
 
   _send(obj) {
@@ -95,5 +97,9 @@ class YindlClient {
   }
 
 }
+
+var util = require('util');
+var events = require('events');
+util.inherits(YindlClient, events.EventEmitter);
 
 module.exports = YindlClient
