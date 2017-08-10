@@ -47,8 +47,8 @@ class YindlPlatform {
       var accessory = new Accessory(name, uuid)
       accessory.addService(service, name)
       this.accessories.push(accessory)
+      this.api.registerPlatformAccessories('homebridge-yindl', 'Yindl', [accessory])
     }
-    this.api.registerPlatformAccessories('homebridge-yindl', 'Yindl', [accessory]);
   }
 
   event(knx_telegram) {
