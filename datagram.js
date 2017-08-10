@@ -28,45 +28,79 @@ function bcc_checksum (str) {
 
 class Datagram {
 
-  static get TYPE() {
+  static get type() {
     return TYPE
   }
 
-  // static parse(stream) {
-  //   return Buffer()
-  // }
+  static parse(buf) {
+    var obj = {
+      'type': buf.readUInt16BE(11),
+      'data': buf.toString('binary', 15, len),
+    }
+
+    var len = buf.readUInt16BE(13)
+    if (obj.type == Datagram.type.Init_KNX_Telegram_Reply) {
+      var data = {}
+      data.amount = buf.readUInt32BE(21)
+      data.index = buf.readUInt32BE(25)
+      data.count = buf.readUInt8(29)
+      data.knx_list = []
+      for (var i = 0; i < data.count; i++) {
+        data.knx_list[i] = buf.toString('binary', 30 + i * 11, 41 + i * 11)
+      }
+      obj.data = data
+    } else if (obj.type == Datagram.type.KNX_Telegram_Event) {
+      var data = {}
+      data.count = buf.readUInt16BE(21)
+      for (var i = 0; i < data.count; i++) {
+        data.knx_list[i] = buf.toString('binary', 22 + i * 11, 33 + i * 11)
+      }
+      obj.data = data
+    }
+
+    // console.log(obj)
+    return obj
+  }
 
   static build(obj) {
-    let pkg_len = obj.data.length + 20
-    var len = 0
-
     var buf = new Buffer(2048)
-    len = buf.writeUInt32BE(STX, len)
+    var len = buf.writeUInt32BE(STX, len)
     len = buf.writeUInt8(VER, len)
-    len = buf.writeUInt16BE(pkg_len, len) // len
+    len = buf.writeUInt16BE(0x0000, len) // len
     len = buf.writeUInt32BE(SEQ, len)
-    len = buf.writeUInt16BE(TYPE[obj.type], len)
-    len = buf.writeUInt16BE(pkg_len - 16, len) // payload.len
-    len += buf.write(obj.data, len, obj.data.length, 'binary')
+    len = buf.writeUInt16BE(obj.type, len)
+    len = buf.writeUInt16BE(0x0000, len) // payload.len
+    
+    if (obj.type == Datagram.type.Login) {
+      len = buf.writeUInt16BE(obj.data.usr.length, len)
+      len += buf.write(obj.data.usr, len)
+      len = buf.writeUInt16BE(obj.data.psw.length, len)
+      len += buf.write(obj.data.psw, len)
+    } else if (obj.type == Datagram.type.KNX_Telegram_Publish) {
+      len = buf.writeUIntBE(0x000000000000, len, 6) // unknown
+      len = buf.writeUIntBE(obj.data.knx_list.length, len, 2)
+      for (var i = 0; i < obj.data.knx_list.length; i++) {
+        var knx_telegram = obj.data.knx_list[i] 
+        len += buf.write(knx_telegram, len, knx_telegram.length, 'binary')
+      }
+    } else {
+      len += buf.write(obj.data, len, obj.data.length, 'binary')
+    }
 
-    // if (obj.type == 'Login') {
-
-    // } else if (obj.type == 'KNX_Telegram_Publish') {
-    //   buf.writeUIntBE(0x000000000000, 0, 6) // unknown
-    //   buf.writeUIntBE(obj.data.knx_list.length, 0, 2)
-    //   obj.data.knx_list.map(buf.write)
-    // } else {
-    //   buf.write(obj.data)
-    // }
+    buf.writeUInt16BE(len + 5, 5) // len
+    buf.writeUInt16BE(len - 11, 13) // payload.len
 
     let bcc = bcc_checksum(buf.toString('binary', 4, len))
     len = buf.writeUInt8(bcc, len)
     len = buf.writeUInt32BE(ETX, len)
 
-    let pkg = buf.toString('binary', 0, pkg_len)
+    buf = buf.slice(0, len)
+    return buf
 
-    // console.log(buf.toString('hex', 0, pkg_len))
-    return pkg
+    // let pkg = buf.toString('binary', 0, len)
+
+    // console.log(buf.toString('hex', 0, len))
+    // return pkg
   }
 }
 

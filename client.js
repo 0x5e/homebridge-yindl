@@ -8,6 +8,7 @@ class YindlClient {
 
   start() {
     var socket = net.connect(this.addr, this._connected.bind(this));
+    socket.setEncoding('binary')
     socket.on('data', this._received.bind(this));
     socket.on('end', this._closed.bind(this))
 
@@ -16,36 +17,71 @@ class YindlClient {
 
   _connected() {
     console.info('Connected')
-    this.login('yindl', '24325356658776987')
+    this._login('yindl', '24325356658776987')
+    this._init_knx()
+
+    clearInterval(this.interval)
+    this.interval = setInterval(this._heartbeat.bind(this), 60 * 1000)
   }
 
   _received(data) {
-    console.debug('Recv: ' + data)
+    var buf = new Buffer(data, 'binary')
+    console.info('Recv <--- ', buf.toString('hex'))
+
+    var pkg = Datagram.parse(buf)
+    if (pkg.type == Datagram.type.Heartbeat_Ack) {
+      ;
+    } else if (pkg.type == Datagram.type.Login_Ack) {
+      console.log('Login success')
+    } else if (pkg.type == Datagram.type.Init_KNX_Telegram_Reply) {
+      this._knx_update(pkg.data.knx_list)
+      // this._send({'type': Datagram.type.Init_KNX_Telegram_Reply_Ack, 'data': })
+    } else if (pkg.type == Datagram.type.KNX_Telegram_Event) {
+      this._knx_update(pkg.data.knx_list)
+      // this._send({'type': Datagram.type.KNX_Telegram_Event_Ack, 'data': })
+    }
   }
 
   _closed() {
     console.info('Closed')
   }
 
-  login(usr, psw) {
-    var buf = new Buffer(usr.length + psw.length + 4)
-    buf.writeUInt16BE(usr.length, 0)
-    buf.write(usr, 2)
-    buf.writeUInt16BE(psw.length, usr.length + 2)
-    buf.write(psw, usr.length + 4)
-    var data = buf.toString()
-    this.send({'type': 'Login', 'data': data})
+  _heartbeat() {
+    this._send({'type': Datagram.type.Heartbeat, 'data': '\x7b'})
   }
 
-  send(obj) {
+  _login(usr, psw) {
+    this._send({'type': Datagram.type.Login, 'data': {'usr': usr, 'psw': psw}})
+  }
+
+  _init_knx() {
+    this.knx_dict = {}
+    this._send({'type': Datagram.type.Init_KNX_Telegram, 'data': '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'})
+  }
+
+  _knx_update(knx_telegram_list) {
+    for (var i = 0; i < knx_telegram_list.length; i++) {
+      var knx_telegram = knx_telegram_list[i]
+      var index = knx_telegram.charCodeAt(3)
+      console.log('KNX  <--- ', new Buffer(knx_telegram, 'binary').toString('hex'))
+      this.knx_dict[index] = knx_telegram
+    }
+  }
+
+  _knx_publish(knx_telegram_list) {
+    for (var i = 0; i < knx_telegram_list.length; i++) {
+      var knx_telegram = knx_telegram_list[i]
+      console.log('KNX  ---> ', new Buffer(knx_telegram, 'binary').toString('hex'))
+    }
+    this._send({'type': Datagram.type.KNX_Telegram_Publish, 'knx_list': knx_telegram_list})
+  }
+
+  _send(obj) {
     var pkg = Datagram.build(obj)
-    console.info('Send: ' + pkg)
+    console.info('Send ---> ', pkg.toString('hex'))
     this.socket.write(pkg)
   }
 
-  recv() {
-    return {}
-  }
 }
 
 module.exports = YindlClient
