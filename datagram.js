@@ -7,15 +7,15 @@ const ETX = 0xea62ea63
 const TYPE = {
   Heartbeat: 0x0000,
   Heartbeat_Ack: 0x0001,
-  Login: 0x0500,
-  Login_Ack: 0x0501,
-  Init_KNX_Telegram: 0x0603,
-  Init_KNX_Telegram_Reply: 0x0604,
-  Init_KNX_Telegram_Reply_Ack: 0x0605,
-  KNX_Telegram_Event: 0x0606,
-  KNX_Telegram_Event_Ack: 0x0607,
-  KNX_Telegram_Publish: 0x0608,
-  KNX_Telegram_Publish_Ack: 0x0609,
+  Login: 0x0500, // 1280
+  Login_Ack: 0x0501, // 1281
+  Init_KNX_Telegram: 0x0603, // 1539
+  Init_KNX_Telegram_Reply: 0x0604, // 1540
+  Init_KNX_Telegram_Reply_Ack: 0x0605, // 1541
+  KNX_Telegram_Event: 0x0606, // 1542
+  KNX_Telegram_Event_Ack: 0x0607, // 1543
+  KNX_Telegram_Publish: 0x0608, // 1544
+  KNX_Telegram_Publish_Ack: 0x0609, // 1545
 }
 
 function bcc_checksum (str) {
@@ -52,8 +52,9 @@ class Datagram {
     } else if (obj.type == Datagram.type.KNX_Telegram_Event) {
       var data = {}
       data.count = buf.readUInt16BE(21)
+      data.knx_list = []
       for (var i = 0; i < data.count; i++) {
-        data.knx_list[i] = buf.toString('binary', 22 + i * 11, 33 + i * 11)
+        data.knx_list[i] = buf.toString('binary', 23 + i * 11, 34 + i * 11)
       }
       obj.data = data
     }
@@ -70,7 +71,7 @@ class Datagram {
     len = buf.writeUInt32BE(SEQ, len)
     len = buf.writeUInt16BE(obj.type, len)
     len = buf.writeUInt16BE(0x0000, len) // payload.len
-    
+
     if (obj.type == Datagram.type.Login) {
       len = buf.writeUInt16BE(obj.data.usr.length, len)
       len += buf.write(obj.data.usr, len)
@@ -80,7 +81,7 @@ class Datagram {
       len = buf.writeUIntBE(0x000000000000, len, 6) // unknown
       len = buf.writeUIntBE(obj.data.knx_list.length, len, 2)
       for (var i = 0; i < obj.data.knx_list.length; i++) {
-        var knx_telegram = obj.data.knx_list[i] 
+        var knx_telegram = obj.data.knx_list[i]
         len += buf.write(knx_telegram, len, knx_telegram.length, 'binary')
       }
     } else {

@@ -26,9 +26,10 @@ class YindlClient {
 
   _received(data) {
     var buf = new Buffer(data, 'binary')
-    console.info('Recv <--- ', buf.toString('hex'))
-
     var pkg = Datagram.parse(buf)
+    console.info('Recv <--- ', buf.toString('hex'))
+    // console.info(pkg)
+
     if (pkg.type == Datagram.type.Heartbeat_Ack) {
       ;
     } else if (pkg.type == Datagram.type.Login_Ack) {
@@ -50,7 +51,8 @@ class YindlClient {
       this._knx_update(pkg.data.knx_list)
 
       var buf = new Buffer(8)
-      buf.writeUInt32BE(pkg.data.count)
+      buf.writeUInt8(pkg.data.count, 7)
+
       this._send({'type': Datagram.type.KNX_Telegram_Event_Ack, 'data': buf.toString('binary')})
     }
   }
@@ -93,6 +95,7 @@ class YindlClient {
   _send(obj) {
     var pkg = Datagram.build(obj)
     console.info('Send ---> ', pkg.toString('hex'))
+    // console.info(obj)
     this.socket.write(pkg)
   }
 
