@@ -64,7 +64,7 @@ class Datagram {
   }
 
   static build(obj) {
-    var buf = new Buffer(2048)
+    var buf = Buffer.alloc(2048)
     var len = buf.writeUInt32BE(STX, len)
     len = buf.writeUInt8(VER, len)
     len = buf.writeUInt16BE(0x0000, len) // len
@@ -103,6 +103,7 @@ class Datagram {
     // console.log(buf.toString('hex', 0, len))
     // return pkg
   }
+
 }
 
 module.exports = Datagram
