@@ -1,168 +1,207 @@
-var net = require('net');
-var xml2js = require('xml2js');
-var xpath = require("xml2js-xpath");
+var net = require('net')
+var xml2js = require('xml2js')
+var xpath = require("xml2js-xpath")
 
-var Datagram = require('./datagram');
-var YindlLight = require('./light');
+const YINDL_STX = 0xea61ea60
+const YINDL_VER = 0x01
+const YINDL_SEQ = 0x00000000
+const YINDL_ETX = 0xea62ea63
 
-const YINDL_USERNAME = 'yindl';
-const YINDL_PASSWORD = '24325356658776987';
+const YINDL_TYPE = {
+  Heartbeat: 0x0000,
+  Heartbeat_Ack: 0x0001,
+  Login: 0x0500, // 1280
+  Login_Ack: 0x0501, // 1281
+  Init_KNX_Telegram: 0x0603, // 1539
+  Init_KNX_Telegram_Reply: 0x0604, // 1540
+  Init_KNX_Telegram_Reply_Ack: 0x0605, // 1541
+  KNX_Telegram_Event: 0x0606, // 1542
+  KNX_Telegram_Event_Ack: 0x0607, // 1543
+  KNX_Telegram_Publish: 0x0608, // 1544
+  KNX_Telegram_Publish_Ack: 0x0609, // 1545
+}
+
+const YINDL_USERNAME = 'yindl'
+const YINDL_PASSWORD = '24325356658776987'
+
+function bcc_checksum (str) {
+  var bcc = 0x00
+  for (var i = 0; i < str.length; i++) {
+    bcc ^= str.charCodeAt(i)
+  }
+  return bcc
+}
+
 
 class YindlClient {
 
   constructor(host, port, projectInfo) {
-    this.addr = {'host': host, 'port': port};
-    this.projectInfo = projectInfo;
-    this.lightArray = xpath.find(projectInfo, '//Light').map(value => value.$);
+    this.addr = {'host': host, 'port': port}
+    this.projectInfo = projectInfo
+    this.lightArray = xpath.find(projectInfo, '//Light').map(value => value.$)
   }
 
   start() {
-    var socket = net.connect(this.addr, this._onConnected.bind(this));
+    var socket = net.connect(this.addr, this.onConnected.bind(this))
     socket.setEncoding('binary')
-    socket.on('data', this._onDataReceived.bind(this));
-    socket.on('end', this._onClosed.bind(this))
+    socket.on('data', this.onDataReceived.bind(this))
+    socket.on('end', this.onClosed.bind(this))
 
     this.socket = socket
   }
 
   // socket event -
 
-  _onConnected() {
-    console.info('_onConnected')
-    this._login(YINDL_USERNAME, YINDL_PASSWORD)
-    this._init_knx()
+  onConnected() {
+    console.info('[YINDL] onConnected')
+    this.login(YINDL_USERNAME, YINDL_PASSWORD)
 
     clearInterval(this.interval)
-    this.interval = setInterval(this._heartbeat.bind(this), 60 * 1000)
+    this.interval = setInterval(this.heartbeat.bind(this), 60 * 1000)
   }
 
-  _onDataReceived(data) {
+  onDataReceived(data) {
     var buf = Buffer.from(data, 'binary')
-    var pkg = Datagram.parse(buf)
-    // console.info('Recv <--- ', buf.toString('hex'))
+    // console.debug('[YINDL] onDataReceived:', buf.toString('hex'))
 
-    if (pkg.type == Datagram.type.Heartbeat_Ack) {
+    var type = buf.readUInt16BE(11)
+    var len = buf.readUInt16BE(13) - 4
+    var payload = buf.slice(15, 15 + len)
+
+    if (type == YINDL_TYPE.Heartbeat_Ack) {
       ;
-    } else if (pkg.type == Datagram.type.Login_Ack) {
-      console.info('Login success')
-    } else if (pkg.type == Datagram.type.Init_KNX_Telegram_Reply) {
-      this._onKNXUpdate(pkg.data.knx_list)
+    } else if (type == YINDL_TYPE.Login_Ack) {
+      console.info('[YINDL] Login success')
+      this.init_knx()
+    } else if (type == YINDL_TYPE.Init_KNX_Telegram_Reply) {
+      var amount = payload.readUInt32BE(6)
+      var index = payload.readUInt32BE(10)
+      var count = payload.readUInt8(14)
+      // console.debug('[YINDL] Init KNX Telegram Reply: amount =', amount, 'index =', index, 'count =', count)
+      var knx_list = []
+      for (var i = 15; i <= payload.length - 11; i += 11) {
+        knx_list.push(payload.slice(i, i + 11))
+      }
+
+      this.onKNXUpdate(knx_list)
 
       var buf = Buffer.alloc(15)
-      buf.writeUInt32BE(pkg.data.amount, 6)
-      buf.writeUInt32BE(pkg.data.index, 10)
-      buf.writeUInt8(pkg.data.count, 14)
-      this._send(Datagram.type.Init_KNX_Telegram_Reply_Ack, buf.toString('binary'))
+      buf.writeUInt32BE(amount, 6)
+      buf.writeUInt32BE(index, 10)
+      buf.writeUInt8(count, 14)
+      this.send(YINDL_TYPE.Init_KNX_Telegram_Reply_Ack, buf)
 
-      if (pkg.data.index - 1 + pkg.data.count == pkg.data.amount) {
-        console.info('KNX Telegrams all loaded, count: ', pkg.data.amount)
-        this.emit('loaded', this.knx_dict)
+      if (index - 1 + count == amount) {
+        // console.debug('[YINDL] KNX Telegrams all loaded')
+        this.emit('loaded', this.knx_state)
       }
-    } else if (pkg.type == Datagram.type.KNX_Telegram_Event) {
-      this._onKNXUpdate(pkg.data.knx_list)
+    } else if (type == YINDL_TYPE.KNX_Telegram_Event) {
+      var count = payload.readUInt16BE(6)
+      var knx_list = []
+      for (var i = 8; i <= payload.length - 11; i += 11) {
+        knx_list.push(payload.slice(i, i + 11))
+      }
+
+      this.onKNXUpdate(knx_list)
 
       var buf = Buffer.alloc(8)
-      buf.writeUInt8(pkg.data.count, 7)
-      this._send(Datagram.type.KNX_Telegram_Event_Ack, buf.toString('binary'))
+      buf.writeUInt8(count, 7)
+      this.send(YINDL_TYPE.KNX_Telegram_Event_Ack, buf)
+    } else if (type == YINDL_TYPE.KNX_Telegram_Publish_Ack) {
+
     }
   }
 
-  _onClosed() {
-    console.info('Closed')
+  onClosed() {
+    console.info('[YINDL] onClosed')
   }
 
-  // -------------------------------
+  // knx method -
 
-  _heartbeat() {
-    this._send(Datagram.type.Heartbeat, '\x7b')
+  heartbeat() {
+    var buf = Buffer.alloc(1)
+    buf.writeUInt8(0x7b, 0)
+    this.send(YINDL_TYPE.Heartbeat, buf)
   }
 
-  _login(usr, psw) {
-    this._send(Datagram.type.Login, {'usr': usr, 'psw': psw})
+  login(usr, psw) {
+    var buf = Buffer.alloc(usr.length + psw.length + 4)
+    buf.writeUInt16BE(usr.length, 0)
+    buf.write(usr, 2)
+    buf.writeUInt16BE(psw.length, usr.length + 2)
+    buf.write(psw, usr.length + 4)
+    this.send(YINDL_TYPE.Login, buf)
   }
 
-  _init_knx() {
-    this.knx_dict = {}
-    this._send(Datagram.type.Init_KNX_Telegram, '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+  init_knx() {
+    this.knx_state = {}
+    var buf = Buffer.alloc(13)
+    this.send(YINDL_TYPE.Init_KNX_Telegram, buf)
   }
 
-  _onKNXUpdate(knx_telegram_list) {
-    var output = `新的数据数量: ${knx_telegram_list.length}`;
+  telegram_publish(id, value) {
+    value = parseInt(value)
+    console.log(`写入数据->ID=${id}    DATA=${value}`)
+
+    var telegram = Buffer.alloc(11)
+    telegram.writeUInt8(id, 3)
+    telegram.writeUInt8(0x0f, 4)
+    telegram.writeUInt8(0x04, 6)
+    telegram.writeFloatBE(value, 7)
+    var telegrams = [telegram] // todo multiple publish
+
+    var buf = Buffer.alloc(8 + telegrams.length * 11)
+    buf.writeUInt16BE(telegrams.length, 6)
+    for(var i = 0; i < telegrams.length; i ++) {
+      telegrams[i].copy(buf, 8 + i * 11, 0, 11)
+    }
+
+    this.send(YINDL_TYPE.KNX_Telegram_Publish, buf)
+  }
+
+  send(type, payload) {
+    var buf = Buffer.alloc(20 + payload.length)
+
+    buf.writeUInt32BE(YINDL_STX, 0)
+    buf.writeUInt8(YINDL_VER, 4)
+    buf.writeUInt16BE(buf.length, 5) // len
+    buf.writeUInt32BE(YINDL_SEQ, 7)
+    buf.writeUInt16BE(type, 11)
+    buf.writeUInt16BE(payload.length + 4, 13) // payload.len
+
+    payload.copy(buf, 15, 0, payload.length)
+
+    let bcc = bcc_checksum(buf.toString('binary', 4, 15 + payload.length))
+    buf.writeUInt8(bcc, 15 + payload.length)
+    buf.writeUInt32BE(YINDL_ETX, 16 + payload.length)
+    
+    // console.debug('[YINDL] Send:', buf.toString('hex'))
+    this.socket.write(buf)
+  }
+
+  // knx event -
+
+  onKNXUpdate(knx_telegram_list) {
+    var output = `新的数据数量: ${knx_telegram_list.length}`
     for (var i = 0; i < knx_telegram_list.length; i++) {
       var knx_telegram = knx_telegram_list[i]
-      // var index = knx_telegram.charCodeAt(3)
-      // this.emit('event', knx_telegram)
-      // console.info('KNX  <--- ', new Buffer(knx_telegram, 'binary').toString('hex'))
-      // this.knx_dict[index] = knx_telegram
+      var id = parseInt(knx_telegram.readUInt8(3))
+      var value = parseInt(knx_telegram.readFloatBE(7))
+      this.knx_state[id] = value
+      this.emit('event', {id: value})
 
-
-      var id = knx_telegram.charCodeAt(3);
-      // var value = 
-      // todo 转换
-      output += ` ${id}(${value})`;
-
-      for (let i = 0; i < this.lightArray.length; i++) {
-        var light = this.lightArray[i];
-        if (light.Write == id || light.Read == id) {
-          light.value = value
-        }
-      }
-
+      output += ` ${id}(${value})`
     }
-    console.log(output);
+    console.log(output)
   }
 
-  _write(device, value) {
-    var buf = Buffer.alloc(11);
-    buf.writeUInt8(device.write, 3);
-    buf.writeUInt8(0x0f, 4);
-    buf.writeUInt8(0x04, 6);
-
-    if (device.style === '0') {
-      value = (value === 0) ? 0x0000 : 0x3f80;
-      buf.writeUInt16BE(value, 7);
-    } else if (device.style === '1') {
-      // value (0~255) map to 0x0000 ~ 0x437f 关系不明，待转换
-      buf.writeUInt16BE(value, 7);
-    } else {
-      // unknown
-    }
-
-    console.info(buf.toString('hex'))
-    // this._send(Datagram.type.KNX_Telegram_Publish, {'knx_list': [buf]})
-  }
-
-  _knx_publish(knx_telegram_list) {
-    for (var i = 0; i < knx_telegram_list.length; i++) {
-      var knx_telegram = knx_telegram_list[i]
-      // console.info('KNX  ---> ', new Buffer(knx_telegram, 'binary').toString('hex'))
-    }
-    this._send(Datagram.type.KNX_Telegram_Publish, {'knx_list': knx_telegram_list})
-  }
-
-  _send(type, data) {
-    var obj = {'type': type, 'data': data}
-    var pkg = Datagram.build(obj)
-    // console.info('Send ---> ', pkg.toString('hex'))
-    // console.info(obj)
-    // '写入数据->ID=%d    DATA='
-    this.socket.write(pkg)
-  }
-
-  deviceWithID(id) {
-    var devices = this.lightArray.filter(value => (value.Write == id) || (value.Read == id))
-    if (devices.length == 1) {
-      return devices[0];
-    }
-    return null;
-  }
 }
 
-var util = require('util');
-var events = require('events');
-util.inherits(YindlClient, events.EventEmitter);
+var util = require('util')
+var events = require('events')
+util.inherits(YindlClient, events.EventEmitter)
 
-module.exports = YindlClient;
+module.exports = YindlClient
 
 
 // -----------------------------------
@@ -197,14 +236,20 @@ if (require.main === module) {
         <Underfloor-Tree></Underfloor-Tree>
         <Newfan-Tree></Newfan-Tree>
     </Smarthome-Tree>
-    `;
+    `
 
-    var projectInfo = await xml2js.parseStringPromise(projectInfoString);
-    var client = new YindlClient('192.168.1.251', 60002, projectInfo);
-    // console.log(client.lightArray);
-    // console.log(client.deviceWithID(0x03));
+    var projectInfo = await xml2js.parseStringPromise(projectInfoString)
+    var client = new YindlClient('192.168.1.251', 60002, projectInfo)
+    // console.log(client.lightArray)
 
-    setTimeout(client.start.bind(client), 1000);
-  })();
+    setTimeout(() => {
+      client.start()
+    }, 1000)
+
+    // setTimeout(() => {
+    //   client.telegram_publish(17, 255)
+    // }, 5000)
+
+  })()
 
 }
