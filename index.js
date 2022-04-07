@@ -1,7 +1,13 @@
 var YindlClient = require('./client');
+var YindlLightbulbAccessory = require('./light');
+
+var Accessory, Service, Characteristic;
 
 module.exports = (api) => {
-  api.registerPlatform('homebridge-yindl', YindlPlatform);
+  Accessory = homebridge.platformAccessory;
+  Service = homebridge.hap.Service;
+  Characteristic = homebridge.hap.Characteristic;
+  homebridge.registerPlatform('homebridge-yindl', 'YindlPlatform', YindlPlatform, true);
 }
 
 class YindlPlatform {
@@ -22,42 +28,16 @@ class YindlPlatform {
     })
   }
 
-  loaded(knx_state) {
-    var that = this
-
-    this.config.lights.forEach(light => {
-      var uuid = this.api.hap.uuid.generate(`YindlLight-${light.read}-${light.write}`)
-
-      if (this.accessories.find(accessory => accessory.UUID === uuid)) {
-        return
-      }
-
-      var service = this.api.Service.Lightbulb;
-
-      service
-        .getCharacteristic(this.api.hap.Characteristic.On)
-        .on('set', (value, callback) => { that.setPower(light, value, callback) })
-        .value = (knx_state[light.read] != 0)
-
-      if (light.style == 1) {
-        service
-          .getCharacteristic(this.api.hap.Characteristic.Brightness)
-          .on('set', (value, callback) => { that.setBrightness(light, value, callback) })
-          .value = parseInt(knx_state[light.read] / 255 * 100)
-      }
-
-      var accessory = new this.api.platformAccessory(light.name, uuid)
-      accessory.addService(service)
-      accessory.reachable = true
-      accessory.light = light
-
-      this.api.registerPlatformAccessories('homebridge-yindl', 'Yindl', [accessory])
-    });
-
-  }
-
   configureAccessory(accessory) {
     this.accessories.push(accessory);
+  }
+
+  loaded() {
+    this.config.lights.forEach(light => {
+      var accessory = new YindlLightbulbAccessory(api, client, light)
+      accessory.reachable = true
+      this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory])
+    });
   }
 
   event(state) {
@@ -65,22 +45,24 @@ class YindlPlatform {
       var value = state[id]
       
       this.accessories.forEach(accessory => {
-        if (accessory.light.read != id) {
-          return
-        }
+        if (accessory instanceof YindlLightbulbAccessory) {
+          if (accessory.light.read != id) {
+            return
+          }
 
-        var service = accessory.getService(this.api.Service.Lightbulb)
+          var service = accessory.getService(Service.Lightbulb)
 
-        // Power
-        service
-          .getCharacteristic(this.api.hap.Characteristic.On)
-          .updateValue(value != 0)
-
-        // Brightness
-        if (accessory.light.style == 1) {
+          // Power
           service
-            .getCharacteristic(this.api.hap.Characteristic.Brightness)
-            .updateValue(parseInt(value / 255 * 100))
+            .getCharacteristic(Characteristic.On)
+            .updateValue(accessory.handleOnGet())
+
+          // Brightness
+          if (accessory.light.style == 1) {
+            service
+              .getCharacteristic(Characteristic.Brightness)
+              .updateValue(accessory.handleBrightnessGet())
+          }
         }
 
       });
@@ -88,24 +70,6 @@ class YindlPlatform {
 
   }
 
-  setPower(light, value, callback) {
-
-    // bool -> number( 0-1 | 0-255 )
-    if (value) {
-      value = (light.style == 1) ? 255 : 1
-    } else {
-      value = 0
-    }
-
-    this.client.telegram_publish(light.write, value)
-    callback()
-  }
-
-  setBrightness(light, value, callback) {
-    value = parseInt(value / 100.0 * 255) // 0~100 -> 0~255
-    this.client.telegram_publish(light.write, value)
-    callback()
-  }
 }
 
 // -----------------------------------
