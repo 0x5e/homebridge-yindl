@@ -3,7 +3,7 @@ var YindlLightbulb = require('./light');
 
 var Accessory, Service, Characteristic;
 
-module.exports = (api) => {
+module.exports = (homebridge) => {
   Accessory = homebridge.platformAccessory;
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
