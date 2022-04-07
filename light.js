@@ -31,7 +31,7 @@ class YindlLightbulb {
   }
 
   handleOnGet() {
-    return (this.client.knx_status[this.light.read] != 0);
+    return (this.client.knx_state[this.light.read] != 0);
   }
 
   handleOnSet(value) {
@@ -45,7 +45,7 @@ class YindlLightbulb {
   }
 
   handleBrightnessGet() {
-    return parseInt(this.client.knx_status[this.light.read] / 255 * 100);
+    return parseInt(this.client.knx_state[this.light.read] / 255 * 100);
   }
 
   handleBrightnessSet(value) {
