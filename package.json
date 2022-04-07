@@ -1,15 +1,63 @@
 {
   "name": "homebridge-yindl",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "main": "index.js",
-  "repository": "git@github.com:0x5e/homebridge-yindl.git",
+  "repository": "https://github.com/0x5e/homebridge-yindl",
   "author": "gaosen <0x5e@sina.cn>",
   "license": "MIT",
   "keywords": [
     "homebridge-plugin"
   ],
-  "engines": {
-    "homebridge": ">=0.4.0"
+  "schema": {
+    "type": "object",
+    "properties": {
+      "host": {
+        "title": "Host",
+        "type": "string",
+        "default": "192.168.1.251",
+        "format": "hostname",
+        "required": true
+      },
+      "port": {
+        "title": "Port",
+        "type": "number",
+        "default": "60002",
+        "required": true
+      },
+      "lights": {
+        "title": "Light Devices",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true
+            },
+            "style": {
+              "title": "Style",
+              "type": "number",
+              "enum": [
+                "0",
+                "1"
+              ],
+              "required": true
+            },
+            "write": {
+              "titile": "Write",
+              "type": "number",
+              "required": true
+            },
+            "read": {
+              "titile": "Read",
+              "type": "number",
+              "required": true
+            }
+          }
+        }
+      }
+    }
   },
   "dependencies": {}
 }
