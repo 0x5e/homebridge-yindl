@@ -34,7 +34,7 @@ class YindlPlatform {
 
   loaded() {
     this.config.lights.forEach(light => {
-      var accessory = new YindlLightbulb(api, client, light).accessory
+      var accessory = new YindlLightbulb(this.api, this.client, light).accessory
       accessory.reachable = true
       this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory])
     });
