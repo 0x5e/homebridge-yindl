@@ -8,6 +8,7 @@
         "title": "Host",
         "type": "string",
         "default": "192.168.1.251",
+        "placeholder": "192.168.1.251",
         "format": "hostname",
         "required": true
       },
@@ -15,6 +16,7 @@
         "title": "Port",
         "type": "number",
         "default": "60002",
+        "placeholder": "60002",
         "required": true
       },
       "lights": {
@@ -31,6 +33,7 @@
             "style": {
               "title": "Style",
               "type": "number",
+              "default": "0",
               "enum": [
                 "0",
                 "1"

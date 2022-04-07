@@ -1,5 +1,5 @@
 var YindlClient = require('./client');
-var YindlLightbulbAccessory = require('./light');
+var YindlLightbulb = require('./light');
 
 var Accessory, Service, Characteristic;
 
@@ -34,7 +34,7 @@ class YindlPlatform {
 
   loaded() {
     this.config.lights.forEach(light => {
-      var accessory = new YindlLightbulbAccessory(api, client, light)
+      var accessory = new YindlLightbulb(api, client, light).accessory
       accessory.reachable = true
       this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory])
     });
@@ -42,29 +42,24 @@ class YindlPlatform {
 
   event(state) {
     for (var id in state) {
-      var value = state[id]
-      
       this.accessories.forEach(accessory => {
-        if (accessory instanceof YindlLightbulbAccessory) {
-          if (accessory.light.read != id) {
-            return
-          }
-
-          var service = accessory.getService(Service.Lightbulb)
-
-          // Power
-          service
-            .getCharacteristic(Characteristic.On)
-            .updateValue(accessory.handleOnGet())
-
-          // Brightness
-          if (accessory.light.style == 1) {
-            service
-              .getCharacteristic(Characteristic.Brightness)
-              .updateValue(accessory.handleBrightnessGet())
-          }
+        if (accessory.light.read != id) {
+          return
         }
 
+        var service = accessory.getService(Service.Lightbulb)
+
+        // Power
+        service
+          .getCharacteristic(Characteristic.On)
+          .updateValue(accessory.handleOnGet())
+
+        // Brightness
+        if (accessory.light.style == 1) {
+          service
+            .getCharacteristic(Characteristic.Brightness)
+            .updateValue(accessory.handleBrightnessGet())
+        }
       });
     }
 
