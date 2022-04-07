@@ -43,7 +43,8 @@ class YindlPlatform {
   event(state) {
     for (var id in state) {
       this.accessories.forEach(accessory => {
-        if (accessory.light.read != id) {
+        let { light } = accessory.context;
+        if (light.read != id) {
           return
         }
 
@@ -55,7 +56,7 @@ class YindlPlatform {
           .updateValue(accessory.handleOnGet())
 
         // Brightness
-        if (accessory.light.style == 1) {
+        if (light.style == 1) {
           service
             .getCharacteristic(Characteristic.Brightness)
             .updateValue(accessory.handleBrightnessGet())

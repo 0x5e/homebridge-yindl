@@ -27,6 +27,7 @@ class YindlLightbulb {
     this.accessory = new platformAccessory(name, uuid.generate(`YindlLight-${light.read}-${light.write}`), Accessory.Categories.LIGHTBULB)
     this.accessory.addService(service)
     this.accessory.controller = this
+    this.accessory.context = light
 
   }
 
