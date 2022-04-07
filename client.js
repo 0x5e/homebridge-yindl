@@ -1,6 +1,4 @@
 var net = require('net')
-var xml2js = require('xml2js')
-var xpath = require("xml2js-xpath")
 
 const YINDL_STX = 0xea61ea60
 const YINDL_VER = 0x01
@@ -35,10 +33,8 @@ function bcc_checksum (str) {
 
 class YindlClient {
 
-  constructor(host, port, projectInfo) {
+  constructor(host, port) {
     this.addr = {'host': host, 'port': port}
-    this.projectInfo = projectInfo
-    this.lightArray = xpath.find(projectInfo, '//Light').map(value => value.$)
   }
 
   start() {
