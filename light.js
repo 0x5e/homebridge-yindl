@@ -7,9 +7,8 @@ class YindlLightbulb {
     this.light = light;
 
     let { platformAccessory } = api;
-    let { Accessory, Characteristic, Service } = api.hap;
+    let { Accessory, Characteristic, Service, uuid } = api.hap;
     let { name, style, write, read } = light;
-    let uuid = `YindlLight-${light.read}-${light.write}`;
 
     // create a new Lightbulb service
     let service = new Service(Service.Lightbulb);
@@ -25,7 +24,7 @@ class YindlLightbulb {
         .onSet(this.handleBrightnessSet.bind(this));
     }
 
-    this.accessory = new platformAccessory(name, uuid, Accessory.Categories.LIGHTBULB)
+    this.accessory = new platformAccessory(name, uuid.generate(`YindlLight-${light.read}-${light.write}`), Accessory.Categories.LIGHTBULB)
     this.accessory.addService(service)
     this.accessory.controller = this
 
