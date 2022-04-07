@@ -10,8 +10,11 @@ class YindlLightbulb {
     let { Accessory, Characteristic, Service, uuid } = api.hap;
     let { name, style, write, read } = light;
 
-    // create a new Lightbulb service
-    let service = new Service(Service.Lightbulb);
+
+    this.accessory = new platformAccessory(name, uuid.generate(`YindlLight-${light.read}-${light.write}`), Accessory.Categories.LIGHTBULB)
+    this.accessory.controller = this
+
+    let service = this.accessory.getService(Service.Lightbulb);
 
     // create handlers for required characteristics
     service.getCharacteristic(Characteristic.On)
@@ -23,10 +26,6 @@ class YindlLightbulb {
         .onGet(this.handleBrightnessGet.bind(this))
         .onSet(this.handleBrightnessSet.bind(this));
     }
-
-    this.accessory = new platformAccessory(name, uuid.generate(`YindlLight-${light.read}-${light.write}`), Accessory.Categories.LIGHTBULB)
-    this.accessory.addService(service)
-    this.accessory.controller = this
 
   }
 
