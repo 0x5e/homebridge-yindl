@@ -1,95 +1,161 @@
-var homebridge;
 var YindlClient = require('./client');
 
-module.exports = function (pHomebridge) {
-  homebridge = pHomebridge;
-  homebridge.registerPlatform('homebridge-yindl', 'Yindl', YindlPlatform, true);
-};
+module.exports = (api) => {
+  api.registerPlatform('homebridge-yindl', YindlPlatform);
+}
 
 class YindlPlatform {
   constructor(log, config, api) {
-    this.log = log
-    this.config = config
     this.accessories = []
     this.api = api
-    this.api.on('didFinishLaunching', this.didFinishLaunching.bind(this))
-  }
 
-  didFinishLaunching() {
-    var client = new YindlClient('192.168.1.251', 60002)
-    client.on('loaded', this.loaded.bind(this))
-    client.on('event', this.event.bind(this))
-    client.start()
+    api.on('didFinishLaunching', async () => {
 
-    this.client = client
+      var host = config['host']
+      var port = config['port']
+      var projectInfoString = config['projectInfoString']
+      var projectInfo = await xml2js.parseStringPromise(projectInfoString)
+
+      var client = new YindlClient(host, port, projectInfo)
+      client.on('loaded', this.loaded.bind(this))
+      client.on('event', this.event.bind(this))
+      client.start()
+
+      this.client = client
+    })
   }
 
   loaded(knx_dict) {
     var that = this
-    for (var i = 0; i < knx_dict.length; i++) {
-      uuid = UUIDGen.generate(i)
-      name = 'Yindl' + i // todo
 
-      // knx_dict[i]
+    this.lightArray.forEach(light => {
+      var uuid = `YindlLight-${light.Read}`
+      var name = light.Name
+
+      if (this.accessories.find(accessory => accessory.UUID === uuid)) {
+        return
+      }
 
       var service = new Service.Lightbulb(name)
 
       service
         .getCharacteristic(Characteristic.On)
-        .on('set', (value, callback) => { that.setPower(i, value, callback) })
+        .on('set', (value, callback) => { that.setPower(light, value, callback) })
         .value = 0
 
-      service
-        .getCharacteristic(Characteristic.Brightness)
-        .on('set', (value, callback) => { that.setBrightness(i, value, callback) })
-        .value = 0
+      if (light.Style == 1) {
+        service
+          .getCharacteristic(Characteristic.Brightness)
+          .on('set', (value, callback) => { that.setBrightness(light, value, callback) })
+          .value = 0
+      }
 
-      var accessory = new Accessory(name, uuid)
+      var accessory = new this.api.platformAccessory(name, uuid)
       accessory.addService(service, name)
       accessory.reachable = true
+      accessory.light = light
 
-      this.accessories.push(accessory)
       this.api.registerPlatformAccessories('homebridge-yindl', 'Yindl', [accessory])
-    }
+    });
+
   }
 
-  event(knx_telegram) {
-    var index = knx_telegram.charCodeAt(3)
-    var accessory = this.accessories[index]
-    if (accessory == null) {
-      return
-    }
-
-    var service = accessory.getService(Service.Lightbulb)
-    var character = service.getCharacteristic(Characteristic.On)
-    character.updateValue(0)
+  configureAccessory(accessory) {
+    this.accessories.push(accessory);
   }
 
-  setPower(devId, value, callback) {
-    this.log.info(devId, 'setPower:', value)
+  event(state) {
+    for (var id in state) {
+      var value = state[id]
+      
+      this.accessories.forEach(accessory => {
+        if (accessory.light.Read != id) {
+          return
+        }
 
-    var buf = new Buffer(this.client.knx_dict[devId], 'binary')
-    // buf.writeUInt16BE(value, 7)
+        var service = accessory.getService(Service.Lightbulb)
 
-    var knx_telegram = buf.toString('buf')
-    this.client.knx_publish([knx_telegram])
+        // Power
+        service
+          .getCharacteristic(Characteristic.On)
+          .updateValue(value != 0)
+
+        // Brightness
+        if (accessory.light.Style == 1) {
+          service
+            .getCharacteristic(Characteristic.Brightness)
+            .updateValue(parseInt(value / 255 * 100))
+        }
+
+      });
+    }
+
+  }
+
+  setPower(light, value, callback) {
+
+    // bool -> number( 0-1 | 0-255 )
+    if (value) {
+      value = (light.Style == 1) ? 255 : 1
+    } else {
+      value = 0
+    }
+
+    this.client.telegram_publish(light.Write, value)
     callback()
   }
 
-  setBrightness(devId, value, callback) {
-    this.log.info(devId, 'setBrightness:', value)
-
-    var buf = new Buffer(this.client.knx_dict[devId], 'binary')
-    // buf.writeUInt16BE(value, 7)
-
-    var knx_telegram = buf.toString('buf')
-    this.client.knx_publish([knx_telegram])
+  setBrightness(light, value, callback) {
+    value = parseInt(value / 100.0 * 255) // 0~100 -> 0~255
+    this.client.telegram_publish(light.Write, value)
     callback()
-
   }
 }
 
-// var client = new YindlClient('192.168.1.251', 60002)
-// // client.start()
-// setTimeout(client.start.bind(client), 1000)
+// -----------------------------------
 
+if (require.main === module) {
+
+  (async () => {
+    var projectInfoString = `
+    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    <Smarthome-Tree>
+        <Light-Tree>
+            <Area Name="全部" Style="0">
+                <Area Name="客厅" Style="1">
+                    <Light Name="射灯" Style="0" Write="5" Read="6"/>
+                    <Light Name="灯带" Style="0" Write="7" Read="8"/>
+                    <Light Name="烛灯" Style="0" Write="9" Read="10"/>
+                    <Light Name="吊灯" Style="1" Write="11" Read="12"/>
+                </Area>
+                <Area Name="餐厅" Style="1">
+                    <Light Name="射灯1" Style="0" Write="13" Read="14"/>
+                    <Light Name="射灯2" Style="0" Write="15" Read="16"/>
+                    <Light Name="吊灯" Style="1" Write="17" Read="18"/>
+                </Area>
+                <Area Name="玄关" Style="1">
+                    <Light Name="吊灯" Style="0" Write="1" Read="2"/>
+                    <Light Name="射灯" Style="0" Write="3" Read="4"/>
+                </Area>
+            </Area>
+        </Light-Tree>
+        <Blind-Tree></Blind-Tree>
+        <Air-Tree></Air-Tree>
+        <Underfloor-Tree></Underfloor-Tree>
+        <Newfan-Tree></Newfan-Tree>
+    </Smarthome-Tree>
+    `
+
+    var client = new YindlClient('192.168.50.1', 60002, projectInfoString)
+
+    setTimeout(() => {
+      client.start()
+    }, 1000)
+
+    // setTimeout(() => {
+    //   client.telegram_publish(17, 255)
+    // }, 5000)
+
+  })()
+
+}

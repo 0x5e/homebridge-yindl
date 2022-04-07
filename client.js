@@ -78,12 +78,12 @@ class YindlClient {
       var index = payload.readUInt32BE(10)
       var count = payload.readUInt8(14)
       // console.debug('[YINDL] Init KNX Telegram Reply: amount =', amount, 'index =', index, 'count =', count)
-      var knx_list = []
+      var knx_telegram_list = []
       for (var i = 15; i <= payload.length - 11; i += 11) {
-        knx_list.push(payload.slice(i, i + 11))
+        knx_telegram_list.push(payload.slice(i, i + 11))
       }
 
-      this.onKNXUpdate(knx_list)
+      this.onKNXUpdate(knx_telegram_list)
 
       var buf = Buffer.alloc(15)
       buf.writeUInt32BE(amount, 6)
@@ -97,23 +97,24 @@ class YindlClient {
       }
     } else if (type == YINDL_TYPE.KNX_Telegram_Event) {
       var count = payload.readUInt16BE(6)
-      var knx_list = []
+      var knx_telegram_list = []
       for (var i = 8; i <= payload.length - 11; i += 11) {
-        knx_list.push(payload.slice(i, i + 11))
+        knx_telegram_list.push(payload.slice(i, i + 11))
       }
 
-      this.onKNXUpdate(knx_list)
+      this.onKNXUpdate(knx_telegram_list)
 
       var buf = Buffer.alloc(8)
       buf.writeUInt8(count, 7)
       this.send(YINDL_TYPE.KNX_Telegram_Event_Ack, buf)
     } else if (type == YINDL_TYPE.KNX_Telegram_Publish_Ack) {
-
+      ;
     }
   }
 
   onClosed() {
     console.info('[YINDL] onClosed')
+    // TODO reconnect
   }
 
   // knx method -
@@ -142,13 +143,15 @@ class YindlClient {
   telegram_publish(id, value) {
     value = parseInt(value)
     console.log(`写入数据->ID=${id}    DATA=${value}`)
+    this.knx_state[id] = value
 
     var telegram = Buffer.alloc(11)
     telegram.writeUInt8(id, 3)
     telegram.writeUInt8(0x0f, 4)
     telegram.writeUInt8(0x04, 6)
     telegram.writeFloatBE(value, 7)
-    var telegrams = [telegram] // todo multiple publish
+    
+    var telegrams = [telegram] // TODO multiple publish
 
     var buf = Buffer.alloc(8 + telegrams.length * 11)
     buf.writeUInt16BE(telegrams.length, 6)
@@ -202,54 +205,3 @@ var events = require('events')
 util.inherits(YindlClient, events.EventEmitter)
 
 module.exports = YindlClient
-
-
-// -----------------------------------
-
-if (require.main === module) {
-
-  (async () => {
-    var projectInfoString = `
-    <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <Smarthome-Tree>
-        <Light-Tree>
-            <Area Name="全部" Style="0">
-                <Area Name="客厅" Style="1">
-                    <Light Name="射灯" Style="0" Write="5" Read="6"/>
-                    <Light Name="灯带" Style="0" Write="7" Read="8"/>
-                    <Light Name="烛灯" Style="0" Write="9" Read="10"/>
-                    <Light Name="吊灯" Style="1" Write="11" Read="12"/>
-                </Area>
-                <Area Name="餐厅" Style="1">
-                    <Light Name="射灯1" Style="0" Write="13" Read="14"/>
-                    <Light Name="射灯2" Style="0" Write="15" Read="16"/>
-                    <Light Name="吊灯" Style="1" Write="17" Read="18"/>
-                </Area>
-                <Area Name="玄关" Style="1">
-                    <Light Name="吊灯" Style="0" Write="1" Read="2"/>
-                    <Light Name="射灯" Style="0" Write="3" Read="4"/>
-                </Area>
-            </Area>
-        </Light-Tree>
-        <Blind-Tree></Blind-Tree>
-        <Air-Tree></Air-Tree>
-        <Underfloor-Tree></Underfloor-Tree>
-        <Newfan-Tree></Newfan-Tree>
-    </Smarthome-Tree>
-    `
-
-    var projectInfo = await xml2js.parseStringPromise(projectInfoString)
-    var client = new YindlClient('192.168.1.251', 60002, projectInfo)
-    // console.log(client.lightArray)
-
-    setTimeout(() => {
-      client.start()
-    }, 1000)
-
-    // setTimeout(() => {
-    //   client.telegram_publish(17, 255)
-    // }, 5000)
-
-  })()
-
-}
