@@ -35,13 +35,13 @@ class YindlPlatform {
       var service = this.api.Service.Lightbulb;
 
       service
-        .getCharacteristic(Characteristic.On)
+        .getCharacteristic(this.api.hap.Characteristic.On)
         .on('set', (value, callback) => { that.setPower(light, value, callback) })
         .value = (knx_state[light.read] != 0)
 
       if (light.style == 1) {
         service
-          .getCharacteristic(Characteristic.Brightness)
+          .getCharacteristic(this.api.hap.Characteristic.Brightness)
           .on('set', (value, callback) => { that.setBrightness(light, value, callback) })
           .value = parseInt(knx_state[light.read] / 255 * 100)
       }
@@ -69,17 +69,17 @@ class YindlPlatform {
           return
         }
 
-        var service = accessory.getService(Service.Lightbulb)
+        var service = accessory.getService(this.api.Service.Lightbulb)
 
         // Power
         service
-          .getCharacteristic(Characteristic.On)
+          .getCharacteristic(this.api.hap.Characteristic.On)
           .updateValue(value != 0)
 
         // Brightness
         if (accessory.light.style == 1) {
           service
-            .getCharacteristic(Characteristic.Brightness)
+            .getCharacteristic(this.api.hap.Characteristic.Brightness)
             .updateValue(parseInt(value / 255 * 100))
         }
 
