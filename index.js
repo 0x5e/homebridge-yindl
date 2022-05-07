@@ -36,7 +36,10 @@ class YindlPlatform {
     this.config.lights.forEach(light => {
       var accessory = new YindlLightbulb(this.api, this.client, light).accessory
       accessory.reachable = true
-      this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory])
+
+      if (!this.accessories.find(item => item.UUID === accessory.UUID)) {
+        this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory])
+      }
     });
   }
 
