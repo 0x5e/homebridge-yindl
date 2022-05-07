@@ -42,7 +42,7 @@ class YindlPlatform {
 
   event(state) {
     for (var id in state) {
-      this.accessories.forEach(accessory => {
+      this.accessories && this.accessories.forEach(accessory => {
         let { light } = accessory.context;
         if (light.read != id) {
           return

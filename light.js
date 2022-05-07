@@ -46,11 +46,12 @@ class YindlLightbulb {
   }
 
   handleBrightnessGet() {
-    return parseInt(this.client.knx_state[this.light.read] / 255 * 100);
+    return parseInt(this.client.knx_state[this.light.read] / 255 * 100)
   }
 
   handleBrightnessSet(value) {
-    this.client.telegram_publish(this.light.write, value / 100 * 255);
+    value = value / 100 * 255
+    this.client.telegram_publish(this.light.write, value)
   }
 }
 
