@@ -44,6 +44,7 @@ class YindlPlatform {
     for (var id in state) {
       this.accessories && this.accessories.forEach(accessory => {
         let { light } = accessory.context;
+        console.log(light)
         if (typeof(light) == undefined) {
           return
         }
