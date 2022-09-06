@@ -2,10 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.YindlLightbulbPlatformAccessory = void 0;
 class YindlLightbulbPlatformAccessory {
-    constructor(platform, accessory, client) {
+    constructor(platform, accessory) {
         this.platform = platform;
         this.accessory = accessory;
-        this.client = client;
         this.service = accessory.getService(platform.Service.Lightbulb) || accessory.addService(platform.Service.Lightbulb);
         this.service.setCharacteristic(platform.Characteristic.Name, this.schema.name);
         // create handlers for required characteristics
@@ -22,7 +21,7 @@ class YindlLightbulbPlatformAccessory {
         return this.accessory.context.schema;
     }
     getOn() {
-        return (this.client.knx_state[this.schema.read] != 0);
+        return (this.platform.client.knx_state[this.schema.read] != 0);
     }
     setOn(value) {
         if (value) {
@@ -31,15 +30,15 @@ class YindlLightbulbPlatformAccessory {
         else {
             value = 0;
         }
-        this.client.telegram_publish(this.schema.write, value);
+        this.platform.client.telegram_publish(this.schema.write, value);
     }
     getBrightness() {
         // TODO: parseInt
-        return this.client.knx_state[this.schema.read] / 255 * 100;
+        return this.platform.client.knx_state[this.schema.read] / 255 * 100;
     }
     setBrightness(value) {
         value = value / 100 * 255;
-        this.client.telegram_publish(this.schema.write, value);
+        this.platform.client.telegram_publish(this.schema.write, value);
     }
 }
 exports.YindlLightbulbPlatformAccessory = YindlLightbulbPlatformAccessory;

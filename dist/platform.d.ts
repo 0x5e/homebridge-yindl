@@ -1,5 +1,5 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import YindlClient from './client';
+import { YindlClient } from './client';
 import { YindlLightbulbPlatformAccessory } from './light';
 export declare class YindlPlatform implements DynamicPlatformPlugin {
     readonly log: Logger;
