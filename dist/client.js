@@ -173,8 +173,4 @@ class YindlClient extends events_1.default {
     }
 }
 exports.YindlClient = YindlClient;
-var util = require('util');
-var events = require('events');
-util.inherits(YindlClient, events.EventEmitter);
-module.exports = YindlClient;
 //# sourceMappingURL=client.js.map
