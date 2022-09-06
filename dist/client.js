@@ -166,7 +166,10 @@ class YindlClient extends events_1.default {
             var id = parseInt(knx_telegram.readUInt8(3));
             var value = parseInt(knx_telegram.readFloatBE(7));
             this.knx_state[id] = value;
-            this.emit('event', { id: value });
+            this.emit('event', {
+                'id': id,
+                'value': value,
+            });
             output += ` ${id}(${value})`;
         }
         console.log(output);
