@@ -11,7 +11,7 @@ class YindlLightbulbPlatformAccessory {
         this.service.getCharacteristic(this.platform.Characteristic.On)
             .onGet(this.getOn.bind(this))
             .onSet(this.setOn.bind(this));
-        if (this.schema.style == 1) {
+        if (this.schema.style === 1) {
             this.service.getCharacteristic(this.platform.Characteristic.Brightness)
                 .onGet(this.getBrightness.bind(this))
                 .onSet(this.setBrightness.bind(this));
@@ -21,11 +21,11 @@ class YindlLightbulbPlatformAccessory {
         return this.accessory.context.schema;
     }
     getOn() {
-        return (this.platform.client.knx_state[this.schema.read] != 0);
+        return (this.platform.client.knx_state[this.schema.read] !== 0);
     }
     setOn(value) {
         if (value) {
-            value = (this.schema.style == 1) ? 255 : 1;
+            value = (this.schema.style === 1) ? 255 : 1;
         }
         else {
             value = 0;

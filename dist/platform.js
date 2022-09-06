@@ -43,15 +43,14 @@ class YindlPlatform {
         });
     }
     event(state) {
-        const { id, value } = state;
-        const light = this.lights.find(light => light.schema.read == id);
+        const light = this.lights.find(light => light.schema.read === state.id);
         if (!light) {
             // this.log.warn(`no accessory respondes to ${id}=${value}`);
             return;
         }
         const { accessory } = light;
         const { schema } = accessory.context;
-        var service = accessory.getService(this.Service.Lightbulb);
+        const service = accessory.getService(this.Service.Lightbulb);
         if (!service) {
             this.log.error(`service "Lightbulb" not found for accessory: ${accessory.displayName}`);
             return;

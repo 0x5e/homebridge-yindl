@@ -1,4 +1,4 @@
-import { PlatformAccessory } from 'homebridge';
+import { PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { YindlPlatform } from './platform';
 export declare class YindlLightbulbPlatformAccessory {
     private readonly platform;
@@ -7,8 +7,8 @@ export declare class YindlLightbulbPlatformAccessory {
     constructor(platform: YindlPlatform, accessory: PlatformAccessory);
     get schema(): any;
     getOn(): boolean;
-    setOn(value: any): void;
+    setOn(value: CharacteristicValue): void;
     getBrightness(): number;
-    setBrightness(value: any): void;
+    setBrightness(value: CharacteristicValue): void;
 }
 //# sourceMappingURL=light.d.ts.map

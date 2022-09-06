@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, DynamicPlatformPlugin } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { YindlPlatform } from './platform';
 
@@ -19,7 +19,7 @@ export class YindlLightbulbPlatformAccessory {
       .onGet(this.getOn.bind(this))
       .onSet(this.setOn.bind(this));
 
-    if (this.schema.style == 1) {
+    if (this.schema.style === 1) {
       this.service.getCharacteristic(this.platform.Characteristic.Brightness)
         .onGet(this.getBrightness.bind(this))
         .onSet(this.setBrightness.bind(this));
@@ -32,14 +32,14 @@ export class YindlLightbulbPlatformAccessory {
   }
 
   getOn() {
-    return (this.platform.client.knx_state[this.schema.read] != 0);
+    return (this.platform.client.knx_state[this.schema.read] !== 0);
   }
 
-  setOn(value) {
+  setOn(value: CharacteristicValue) {
     if (value) {
-      value = (this.schema.style == 1) ? 255 : 1
+      value = (this.schema.style === 1) ? 255 : 1;
     } else {
-      value = 0
+      value = 0;
     }
 
     this.platform.client.telegram_publish(this.schema.write, value);
@@ -50,8 +50,8 @@ export class YindlLightbulbPlatformAccessory {
     return this.platform.client.knx_state[this.schema.read] / 255 * 100;
   }
 
-  setBrightness(value) {
-    value = value / 100 * 255;
+  setBrightness(value: CharacteristicValue) {
+    value = (value as number) / 100 * 255;
     this.platform.client.telegram_publish(this.schema.write, value);
   }
 }
