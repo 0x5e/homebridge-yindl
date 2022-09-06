@@ -205,9 +205,3 @@ export class YindlClient extends EventEmitter {
   }
 
 }
-
-var util = require('util')
-var events = require('events')
-util.inherits(YindlClient, events.EventEmitter)
-
-module.exports = YindlClient
