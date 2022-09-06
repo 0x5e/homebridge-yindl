@@ -1,6 +1,5 @@
 import { Service, PlatformAccessory, CharacteristicValue, DynamicPlatformPlugin } from 'homebridge';
 
-import YindlClient from './client';
 import { YindlPlatform } from './platform';
 
 export class YindlLightbulbPlatformAccessory {
@@ -9,7 +8,6 @@ export class YindlLightbulbPlatformAccessory {
   constructor(
     private readonly platform: YindlPlatform,
     public readonly accessory: PlatformAccessory,
-    private readonly client: YindlClient,
   ) {
 
     this.service = accessory.getService(platform.Service.Lightbulb) || accessory.addService(platform.Service.Lightbulb);
@@ -34,7 +32,7 @@ export class YindlLightbulbPlatformAccessory {
   }
 
   getOn() {
-    return (this.client.knx_state[this.schema.read] != 0);
+    return (this.platform.client.knx_state[this.schema.read] != 0);
   }
 
   setOn(value) {
@@ -44,16 +42,16 @@ export class YindlLightbulbPlatformAccessory {
       value = 0
     }
 
-    this.client.telegram_publish(this.schema.write, value);
+    this.platform.client.telegram_publish(this.schema.write, value);
   }
 
   getBrightness() {
     // TODO: parseInt
-    return this.client.knx_state[this.schema.read] / 255 * 100;
+    return this.platform.client.knx_state[this.schema.read] / 255 * 100;
   }
 
   setBrightness(value) {
     value = value / 100 * 255;
-    this.client.telegram_publish(this.schema.write, value);
+    this.platform.client.telegram_publish(this.schema.write, value);
   }
 }

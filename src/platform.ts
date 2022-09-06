@@ -1,6 +1,6 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
-import YindlClient from './client';
+import { YindlClient } from './client';
 import { YindlLightbulbPlatformAccessory } from './light';
 
 export class YindlPlatform implements DynamicPlatformPlugin {
@@ -19,10 +19,11 @@ export class YindlPlatform implements DynamicPlatformPlugin {
   ) {
     this.log.debug('Finished initializing platform:', this.config.name);
 
+    this.client = new YindlClient(config.host, config.port);
+    this.client.on('loaded', this.loaded.bind(this));
+    this.client.on('event', this.event.bind(this));
+
     api.on('didFinishLaunching', async () => {
-      this.client = new YindlClient(config.host, config.port);
-      this.client.on('loaded', this.loaded.bind(this));
-      this.client.on('event', this.event.bind(this));
       this.client.start();
     });
   }
@@ -39,14 +40,14 @@ export class YindlPlatform implements DynamicPlatformPlugin {
       if (existingAccessory) {
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-        const light = new YindlLightbulbPlatformAccessory(this, existingAccessory, this.client);
+        const light = new YindlLightbulbPlatformAccessory(this, existingAccessory);
         this.lights.push(light);
 
       } else {
         const accessory = new this.api.platformAccessory(schema.name, uuid);
         accessory.context.schema = schema;
 
-        const light = new YindlLightbulbPlatformAccessory(this, accessory, this.client);
+        const light = new YindlLightbulbPlatformAccessory(this, accessory);
         this.lights.push(light);
 
         this.log.info('Adding new accessory:', accessory.displayName);

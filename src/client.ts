@@ -1,4 +1,5 @@
-var net = require('net')
+import net from 'net';
+import EventEmitter from 'events';
 
 const YINDL_STX = 0xea61ea60
 const YINDL_VER = 0x01
@@ -31,14 +32,21 @@ function bcc_checksum (str) {
 }
 
 
-class YindlClient {
+export class YindlClient extends EventEmitter {
+  private socket?: net.Socket;
+  private interval?: NodeJS.Timer;
 
-  constructor(host, port) {
-    this.addr = {'host': host, 'port': port}
+  public knx_state = {};
+
+  constructor(
+    private readonly host: string,
+    private readonly port: number,
+  ) {
+    super();
   }
 
   start() {
-    var socket = net.connect(this.addr, this.onConnected.bind(this))
+    var socket = net.connect({'host': this.host, 'port': this.port}, this.onConnected.bind(this))
     socket.setEncoding('binary')
     socket.on('data', this.onDataReceived.bind(this))
     socket.on('end', this.onClosed.bind(this))
@@ -74,7 +82,7 @@ class YindlClient {
       var index = payload.readUInt32BE(10)
       var count = payload.readUInt8(14)
       // console.debug('[YINDL] Init KNX Telegram Reply: amount =', amount, 'index =', index, 'count =', count)
-      var knx_telegram_list = []
+      var knx_telegram_list: Buffer[] = []
       for (var i = 15; i <= payload.length - 11; i += 11) {
         knx_telegram_list.push(payload.slice(i, i + 11))
       }
@@ -93,7 +101,7 @@ class YindlClient {
       }
     } else if (type == YINDL_TYPE.KNX_Telegram_Event) {
       var count = payload.readUInt16BE(6)
-      var knx_telegram_list = []
+      var knx_telegram_list: Buffer[] = []
       for (var i = 8; i <= payload.length - 11; i += 11) {
         knx_telegram_list.push(payload.slice(i, i + 11))
       }
@@ -175,7 +183,9 @@ class YindlClient {
     buf.writeUInt32BE(YINDL_ETX, 16 + payload.length)
     
     // console.debug('[YINDL] Send:', buf.toString('hex'))
-    this.socket.write(buf)
+    if (this.socket) {
+      this.socket.write(buf);
+    }
   }
 
   // knx event -
