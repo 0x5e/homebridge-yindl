@@ -58,11 +58,10 @@ export class YindlPlatform implements DynamicPlatformPlugin {
 
   event(state) {
     const { id, value } = state;
-    this.log.info(`event ${state}`);
 
     const light = this.lights.find(light => light.schema.read == id);
     if (!light) {
-      this.log.warn(`no accessory respondes to ${state}`);
+      // this.log.warn(`no accessory respondes to ${id}=${value}`);
       return;
     }
 
@@ -77,16 +76,14 @@ export class YindlPlatform implements DynamicPlatformPlugin {
 
     // Power
     this.log.info(`Update ${light.accessory.displayName} On=${light.getOn()}`);
-    service
-      .getCharacteristic(this.Characteristic.On)
-      .updateValue(light.getOn())
+    service.getCharacteristic(this.Characteristic.On)
+      .updateValue(light.getOn());
 
     // Brightness
     if (schema.style === 1) {
       this.log.info(`Update ${light.accessory.displayName} Brightness=${light.getBrightness()}`);
-      service
-        .getCharacteristic(this.Characteristic.Brightness)
-        .updateValue(light.getBrightness())
+      service.getCharacteristic(this.Characteristic.Brightness)
+        .updateValue(light.getBrightness());
     }
 
   }
