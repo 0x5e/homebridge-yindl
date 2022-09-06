@@ -79,7 +79,7 @@ class YindlPlatform {
 if (require.main === module) {
 
   (async () => {
-    var client = new YindlClient('192.168.50.1', 60002)
+    var client = new YindlClient('192.168.1.251', 60002)
 
     setTimeout(() => {
       client.start()
