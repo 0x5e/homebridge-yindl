@@ -11,5 +11,8 @@
   "engines": {
     "homebridge": ">=1.4.0"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "homebridge": "^1.4.0"
+  }
 }
