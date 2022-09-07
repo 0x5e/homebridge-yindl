@@ -5,9 +5,12 @@ class YindlLightbulbPlatformAccessory {
     constructor(platform, accessory) {
         this.platform = platform;
         this.accessory = accessory;
+        this.accessory.getService(this.platform.Service.AccessoryInformation)
+            .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Yindl')
+            .setCharacteristic(this.platform.Characteristic.Model, 'YindlLightbulb')
+            .setCharacteristic(this.platform.Characteristic.SerialNumber, '');
         this.service = accessory.getService(platform.Service.Lightbulb) || accessory.addService(platform.Service.Lightbulb);
         this.service.setCharacteristic(platform.Characteristic.Name, this.schema.name);
-        // create handlers for required characteristics
         this.service.getCharacteristic(this.platform.Characteristic.On)
             .onGet(this.getOn.bind(this))
             .onSet(this.setOn.bind(this));
@@ -33,8 +36,7 @@ class YindlLightbulbPlatformAccessory {
         this.platform.client.telegram_publish(this.schema.write, value);
     }
     getBrightness() {
-        // TODO: parseInt
-        return this.platform.client.knx_state[this.schema.read] / 255 * 100;
+        return parseInt((this.platform.client.knx_state[this.schema.read] / 255 * 100).toFixed(0));
     }
     setBrightness(value) {
         value = value / 100 * 255;
