@@ -8,7 +8,7 @@ class YindlLightbulbPlatformAccessory {
         this.accessory.getService(this.platform.Service.AccessoryInformation)
             .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Yindl')
             .setCharacteristic(this.platform.Characteristic.Model, 'YindlLightbulb')
-            .setCharacteristic(this.platform.Characteristic.SerialNumber, '');
+            .setCharacteristic(this.platform.Characteristic.SerialNumber, '000000');
         this.service = accessory.getService(platform.Service.Lightbulb) || accessory.addService(platform.Service.Lightbulb);
         this.service.setCharacteristic(platform.Characteristic.Name, this.schema.name);
         this.service.getCharacteristic(this.platform.Characteristic.On)
