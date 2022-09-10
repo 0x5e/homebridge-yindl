@@ -1,5 +1,6 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { YindlClient } from './client';
 import { YindlLightbulbPlatformAccessory } from './light';
 
@@ -51,7 +52,7 @@ export class YindlPlatform implements DynamicPlatformPlugin {
         this.lights.push(light);
 
         this.log.info('Adding new accessory:', accessory.displayName);
-        this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory]);
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
     });
   }
