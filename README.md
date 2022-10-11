@@ -1,7 +1,7 @@
 # homebridge-yindl
 
 [![homebridge-yindl](https://badgen.net/npm/v/homebridge-yindl?icon=npm)](https://www.npmjs.com/package/homebridge-yindl)
-[![mit-license](https://badgen.net/github/license/0x5e/homebridge-yindl)](https://github.com/merdok/homebridge-yindl/blob/master/LICENSE)
+[![mit-license](https://badgen.net/github/license/0x5e/homebridge-yindl)](https://github.com/0x5e/homebridge-yindl/blob/master/LICENSE)
 
 `homebridge-yindl` is a plugin for homebridge which allows you to control devices from Yindl KNX Gateway.
 
@@ -70,7 +70,7 @@ Example configuration:
 - `port` \[required\] the Gateway IP port. **Default: "60002"**.
 - `lights` \[optional\] A list of your lights.
 
-## light configuration fields
+## Light configuration fields
 
 - `name` \[required\] Name of the light.
 - `style` \[required\] Type of the light. `1` means brightness supported, `0` means not supported.
