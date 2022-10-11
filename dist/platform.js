@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.YindlPlatform = void 0;
+const settings_1 = require("./settings");
 const client_1 = require("./client");
 const light_1 = require("./light");
 class YindlPlatform {
@@ -38,7 +39,7 @@ class YindlPlatform {
                 const light = new light_1.YindlLightbulbPlatformAccessory(this, accessory);
                 this.lights.push(light);
                 this.log.info('Adding new accessory:', accessory.displayName);
-                this.api.registerPlatformAccessories('homebridge-yindl', 'YindlPlatform', [accessory]);
+                this.api.registerPlatformAccessories(settings_1.PLUGIN_NAME, settings_1.PLATFORM_NAME, [accessory]);
             }
         });
     }
