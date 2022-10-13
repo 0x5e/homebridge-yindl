@@ -1,6 +1,6 @@
 {
   "name": "homebridge-yindl",
-  "version": "0.12.4",
+  "version": "0.12.5",
   "description": "Homebridge Plugin for Yindl KNX Gateway.",
   "license": "MIT",
   "repository": {
