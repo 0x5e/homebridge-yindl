@@ -16,7 +16,7 @@ export class YindlPlatform implements DynamicPlatformPlugin {
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
-  public client: YindlClient;
+  public client?: YindlClient;
   public lights: YindlLightbulbPlatformAccessory[] = [];
 
   constructor(
@@ -25,10 +25,6 @@ export class YindlPlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     this.log.debug('Finished initializing platform:', this.config.name);
-
-    this.client = new YindlClient(this.config.host, this.config.port);
-    this.client.on('loaded', this.loaded.bind(this));
-    this.client.on('event', this.event.bind(this));
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -58,7 +54,17 @@ export class YindlPlatform implements DynamicPlatformPlugin {
    * must not be registered again to prevent "duplicate UUID" errors.
    */
   discoverDevices() {
+    const { host, port } = this.config;
+    if (!host || !port) {
+      this.log.info('Host and port are not configured. Stop disocovering devices.');
+      return;
+    }
+
+    this.client = new YindlClient(this.config.host, this.config.port);
+    this.client.on('loaded', this.loaded.bind(this));
+    this.client.on('event', this.event.bind(this));
     this.client.start();
+
   }
 
   loaded() {
