@@ -36,7 +36,7 @@ export class YindlLightbulbPlatformAccessory {
   }
 
   getOn() {
-    return (this.platform.client.knx_state[this.schema.read] !== 0);
+    return (this.platform.client!.knx_state[this.schema.read] !== 0);
   }
 
   setOn(value: CharacteristicValue) {
@@ -46,15 +46,15 @@ export class YindlLightbulbPlatformAccessory {
       value = 0;
     }
 
-    this.platform.client.telegram_publish(this.schema.write, value);
+    this.platform.client!.telegram_publish(this.schema.write, value);
   }
 
   getBrightness() {
-    return parseInt((this.platform.client.knx_state[this.schema.read] / 255 * 100).toFixed(0));
+    return parseInt((this.platform.client!.knx_state[this.schema.read] / 255 * 100).toFixed(0));
   }
 
   setBrightness(value: CharacteristicValue) {
     value = (value as number) / 100 * 255;
-    this.platform.client.telegram_publish(this.schema.write, value);
+    this.platform.client!.telegram_publish(this.schema.write, value);
   }
 }
