@@ -1,7 +1,15 @@
+<p align="center">
+
+<img src="https://github.com/homebridge/branding/raw/master/logos/homebridge-wordmark-logo-vertical.png" width="150">
+
+</p>
+
 # homebridge-yindl
 
-[![homebridge-yindl](https://badgen.net/npm/v/homebridge-yindl?icon=npm)](https://www.npmjs.com/package/homebridge-yindl)
-[![mit-license](https://badgen.net/github/license/0x5e/homebridge-yindl)](https://github.com/0x5e/homebridge-yindl/blob/master/LICENSE)
+[![npm](https://badgen.net/npm/v/homebridge-yindl)](https://www.npmjs.com/package/homebridge-yindl)
+[![npm](https://badgen.net/npm/dt/homebridge-yindl)](https://www.npmjs.com/package/homebridge-yindl)
+[![mit-license](https://badgen.net/npm/license/homebridge-yindl)](https://github.com/0x5e/homebridge-yindl/blob/master/LICENSE)
+<!-- [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) -->
 
 `homebridge-yindl` is a plugin for homebridge which allows you to control devices from Yindl KNX Gateway.
 
@@ -12,8 +20,8 @@
 ## To be supported
 
 - Air Conditioner
-- Curtain
 - Floor Heating
+- Window Covering (Blinds)
 
 ## Installation
 
