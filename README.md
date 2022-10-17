@@ -11,6 +11,8 @@
 [![mit-license](https://badgen.net/npm/license/homebridge-yindl)](https://github.com/0x5e/homebridge-yindl/blob/master/LICENSE)
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
+<img src="./IMG_8201.jpg" align="right" width="250">
+
 `homebridge-yindl` is a plugin for homebridge which allows you to control devices from Yindl KNX Gateway.
 
 ## Supported device types
