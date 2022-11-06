@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import net from 'net';
 import EventEmitter from 'events';
 
@@ -32,6 +33,13 @@ function bcc_checksum (str) {
 }
 
 
+interface Logger {
+  info(message?: any, ...optionalParams: any[]): void;
+  warn(message?: any, ...optionalParams: any[]): void;
+  debug(message?: any, ...optionalParams: any[]): void;
+  error(message?: any, ...optionalParams: any[]): void;
+}
+
 export class YindlClient extends EventEmitter {
   private socket?: net.Socket;
   private interval?: NodeJS.Timer;
@@ -41,6 +49,7 @@ export class YindlClient extends EventEmitter {
   constructor(
     private readonly host: string,
     private readonly port: number,
+    private readonly log: Logger = console,
   ) {
     super();
   }
@@ -57,7 +66,7 @@ export class YindlClient extends EventEmitter {
   // socket event -
 
   onConnected() {
-    console.info('[YINDL] onConnected');
+    this.log.info('[YindlClient] connected.');
     this.login(YINDL_USERNAME, YINDL_PASSWORD);
 
     clearInterval(this.interval);
@@ -66,7 +75,7 @@ export class YindlClient extends EventEmitter {
 
   onDataReceived(data) {
     const buf = Buffer.from(data, 'binary');
-    // console.debug('[YINDL] onDataReceived:', buf.toString('hex'));
+    this.log.debug('[YindlClient] onDataReceived:', buf.toString('hex'));
 
     const type = buf.readUInt16BE(11);
     const len = buf.readUInt16BE(13) - 4;
@@ -75,13 +84,13 @@ export class YindlClient extends EventEmitter {
     if (type === YINDL_TYPE.Heartbeat_Ack) {
       // nothing
     } else if (type === YINDL_TYPE.Login_Ack) {
-      console.info('[YINDL] Login success');
+      this.log.info('[YindlClient] Login success');
       this.init_knx();
     } else if (type === YINDL_TYPE.Init_KNX_Telegram_Reply) {
       const amount = payload.readUInt32BE(6);
       const index = payload.readUInt32BE(10);
       const count = payload.readUInt8(14);
-      // console.debug('[YINDL] Init KNX Telegram Reply: amount =', amount, 'index =', index, 'count =', count);
+      this.log.debug('[YindlClient] Init KNX Telegram Reply: amount =', amount, 'index =', index, 'count =', count);
       const knx_telegram_list: Buffer[] = [];
       for (let i = 15; i <= payload.length - 11; i += 11) {
         knx_telegram_list.push(payload.slice(i, i + 11));
@@ -96,7 +105,7 @@ export class YindlClient extends EventEmitter {
       this.send(YINDL_TYPE.Init_KNX_Telegram_Reply_Ack, buf);
 
       if (index - 1 + count === amount) {
-        // console.debug('[YINDL] KNX Telegrams all loaded');
+        this.log.debug('[YindlClient] KNX Telegrams all loaded');
         this.emit('loaded', this.knx_state);
       }
     } else if (type === YINDL_TYPE.KNX_Telegram_Event) {
@@ -117,7 +126,7 @@ export class YindlClient extends EventEmitter {
   }
 
   onClosed() {
-    console.info('[YINDL] onClosed');
+    this.log.warn('[YindlClient] onClosed');
     // TODO reconnect
   }
 
@@ -146,7 +155,7 @@ export class YindlClient extends EventEmitter {
 
   telegram_publish(id, value) {
     value = parseInt(value);
-    console.log(`写入数据->ID=${id}    DATA=${value}`);
+    this.log.debug(`写入数据->ID=${id}    DATA=${value}`);
     this.knx_state[id] = value;
 
     const telegram = Buffer.alloc(11);
@@ -182,7 +191,7 @@ export class YindlClient extends EventEmitter {
     buf.writeUInt8(bcc, 15 + payload.length);
     buf.writeUInt32BE(YINDL_ETX, 16 + payload.length);
 
-    // console.debug('[YINDL] Send:', buf.toString('hex'));
+    this.log.debug('[YindlClient] Send:', buf.toString('hex'));
     if (this.socket) {
       this.socket.write(buf);
     }
@@ -204,7 +213,7 @@ export class YindlClient extends EventEmitter {
 
       output += ` ${id}(${value})`;
     }
-    console.log(output);
+    this.log.debug(output);
   }
 
 }

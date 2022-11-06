@@ -60,7 +60,7 @@ export class YindlPlatform implements DynamicPlatformPlugin {
       return;
     }
 
-    this.client = new YindlClient(this.config.host, this.config.port);
+    this.client = new YindlClient(this.config.host, this.config.port, this.log);
     this.client.on('loaded', this.loaded.bind(this));
     this.client.on('event', this.event.bind(this));
     this.client.start();
